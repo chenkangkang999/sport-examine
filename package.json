@@ -1,0 +1,16 @@
+{
+  "name": "healthproject-verification",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test:api": "node tests/api-smoke.mjs",
+    "test:race": "node tests/api-races.mjs",
+    "test:e2e": "playwright test",
+    "build": "pwsh -NoProfile -File scripts/build.ps1"
+  },
+  "devDependencies": {
+    "@playwright/test": "1.65.0",
+    "prettier": "^3.8.1"
+  }
+}

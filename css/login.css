@@ -1,0 +1,84 @@
+.wrapper{
+	width: 100%;
+	height: 100%;
+	background-image: linear-gradient(45deg,pink,#266C97,#7EB059);
+	overflow: hidden;
+}
+h1{
+	color: white;
+	text-align: center;
+	margin-top: 13vh;
+	margin-bottom: 3vh;
+	font-size: 9.5vw;
+	font-weight: 500;
+}
+section{
+	width: 86vw;
+	background-color: white;
+	margin: 0 auto;
+	border-radius: 2.4vw;
+	box-sizing: border-box;
+	padding: 6vw;
+}
+section .input-box{
+	width: 100%;
+	height: 12vw;
+	border: solid 1px #CCC;
+	margin-top: 5vw;
+	border-radius: 2vw;
+	display: flex;
+	align-items: center;
+}
+section .input-box input{
+	border: none;
+	outline: none;
+}
+section .input-box i{
+	margin:0 3.6vw;
+	color: #CCC;
+	font-size: 5.4vw;
+}
+section .reg-box{
+	width: 100%;
+	display: flex;
+	justify-content: space-between;
+	margin-top: 2vw;
+	margin-bottom: 2vw;
+}
+section .reg-box p{
+	font-size: 3.3vw;
+	 color: #2D727E;
+	 cursor: pointer;
+}
+section .button-box{
+	width:100%;
+	height: 13vw;
+	background-color: #70b0bc;
+	border-radius: 2vw;
+	text-align: center;
+	line-height: 13vw;
+	font-size: 4.6vw;
+	color: #FFF;
+}
+footer{
+	width:86vw;
+	margin: 0 auto;
+	margin-top:12vw;
+	font-size: 3.8vw;
+	color: #FFF;
+}
+footer div{
+	width: 100%;
+	display:flex;
+	align-items: center;
+	justify-content: space-between;
+}
+footer div .line{
+	width: 22vw;
+	height: 1px;
+	background-color: #FFF;
+}
+footer > p{
+	text-align: center;
+	margin-top: 2vw;
+}
