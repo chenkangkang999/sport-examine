@@ -6,7 +6,7 @@
 
 前端以手册原型为准：保留移动端 APP 布局、原图片和栏目顺序；医生端按蓝灰顶栏、左查询/信息区、右表格/报告区实现。新增功能沿用原样式，并保留已确认的云医院品牌、首页滚动和个人菜单调整。
 
-**前端阅读入口：** [逐页对照与修改指南](docs/FRONTEND_GUIDE.md) · [前端验收清单](docs/FRONTEND_CHECKLIST.md) · [用户端源码导读](user-web/README.md) · [医生端源码导读](manage-web/README.md)
+**使用与开发入口：** [用户、医生与管理员操作说明](docs/USER_GUIDE.md) · [逐页对照与修改指南](docs/FRONTEND_GUIDE.md) · [前端验收清单](docs/FRONTEND_CHECKLIST.md) · [用户端源码导读](user-web/README.md) · [医生端源码导读](manage-web/README.md)
 
 | 工程       | 技术                                            | 默认端口 |
 | ---------- | ----------------------------------------------- | -------- |

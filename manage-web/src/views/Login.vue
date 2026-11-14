@@ -79,10 +79,9 @@ async function submit() {
           >
         </el-form>
         <div class="manual-login-demo">
-          <span>演示账号：</span
+          <span>快捷账号：</span
           ><el-button link type="primary" @click="fill('doctor')">体检医生</el-button
           ><el-button link type="primary" @click="fill('admin')">系统管理员</el-button>
-          <p>点击填入账号与密码后登录。系统仅使用虚构演示资料。</p>
         </div>
       </div>
     </section>

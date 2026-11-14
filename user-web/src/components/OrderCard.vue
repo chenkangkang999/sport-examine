@@ -34,8 +34,7 @@ const canCancel = computed(
         </p>
       </div>
       <div class="order-card-right">
-        <strong class="order-amount">¥{{ money(order.amount) }}</strong
-        ><span class="muted">演示交易</span>
+        <strong class="order-amount">¥{{ money(order.amount) }}</strong>
       </div>
     </div>
     <div class="order-card-bottom">

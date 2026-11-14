@@ -447,7 +447,7 @@ watch(() => route.path, load, { immediate: true });
         </div>
         <label class="confirmation-agreement"
           ><input v-model="agreed" type="checkbox" /><span
-            >我已核对预约信息，同意本次支付（课程练习，不产生真实扣款）。</span
+            >我已核对预约信息，同意本次支付。</span
           ></label
         >
         <div class="booking-bottom payment-bottom">

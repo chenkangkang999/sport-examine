@@ -32,7 +32,7 @@ async function confirmCancel() {
   try {
     await post('/orders/removeOrders', { orderId: cancel.value.orderId });
     cancel.value = null;
-    notify('预约已取消，名额已释放', 'success');
+    notify('预约已取消', 'success');
     await load();
   } catch (e) {
     notify(e.message);
@@ -108,7 +108,7 @@ onMounted(async () => {
   <ConfirmDialog
     :open="Boolean(cancel)"
     title="确认取消这次预约？"
-    :text="`将取消${cancel?.personName || ''}的本次体检预约，释放已占名额并记录演示退款。`"
+    :text="`将取消${cancel?.personName || ''}的本次体检预约，释放已占名额，历史订单仍然保留。`"
     confirm-text="确认取消预约"
     :busy="busy"
     @close="cancel = null"

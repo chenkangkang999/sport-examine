@@ -32,7 +32,7 @@ async function confirmCancel() {
   try {
     await post('/orders/removeOrders', { orderId: order.value.orderId });
     cancel.value = false;
-    notify('预约已取消，演示退款已记录', 'success');
+    notify('预约已取消', 'success');
     await load();
   } catch (e) {
     notify(e.message);
@@ -127,10 +127,7 @@ watch(() => route.params.orderId, load, { immediate: true });
         </div>
         <div class="detail-section">
           <h3>订单金额</h3>
-          <p class="order-amount">
-            ¥{{ money(order.amount)
-            }}<small>{{ order.state === 3 ? '演示退款已记录' : '演示支付已记录' }}</small>
-          </p>
+          <p class="order-amount">¥{{ money(order.amount) }}</p>
         </div>
         <div class="detail-actions">
           <RouterLink v-if="order.state === 2" :to="`/report/${order.orderId}`" class="btn"
@@ -152,7 +149,7 @@ watch(() => route.params.orderId, load, { immediate: true });
   <ConfirmDialog
     :open="cancel"
     title="确认取消本次预约？"
-    text="取消后将释放已占名额并记录演示退款，历史订单仍然保留。"
+    text="取消后将释放已占名额，历史订单仍然保留。"
     confirm-text="确认取消预约"
     :busy="busy"
     @close="cancel = false"

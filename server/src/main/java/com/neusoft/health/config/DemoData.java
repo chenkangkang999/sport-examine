@@ -77,6 +77,7 @@ public class DemoData implements ApplicationRunner {
       staff(3, "admin", "系统管理员", null, "ADMIN", "Admin123!");
     }
     migrateHospitalLabels();
+    migrateOrderHospitalLabels();
     for (var hospital : db.rows("SELECT hpId FROM hospital WHERE state=1"))
       for (int i = 0; i <= 60; i++) {
         LocalDate d = today().plusDays(i);
@@ -189,6 +190,27 @@ public class DemoData implements ApplicationRunner {
     db.exec(
         "UPDATE hospital SET address='康宁路2号' WHERE hpId=2"
             + " AND BINARY address=BINARY '安阳市康宁路2号（虚构地址）'");
+    db.exec("INSERT IGNORE INTO seed_history(seedKey) VALUES(#{p.key})", "key", key);
+  }
+
+  private void migrateOrderHospitalLabels() {
+    String key = "order-hospital-labels-20261114";
+    if (db.one("SELECT seedKey FROM seed_history WHERE seedKey=#{p.key}", "key", key) != null)
+      return;
+    // 仅修正旧默认占位文案；价格、套餐、结果等历史快照及管理员自定义名称均保持不变。
+    // 不按医院当前资料动态覆盖订单，避免真正的后续资料变更影响历史记录。
+    db.exec(
+        "UPDATE orders SET hospitalName='云医院体检中心' WHERE hpId=1"
+            + " AND BINARY hospitalName=BINARY '安阳云医院体检中心（演示）'");
+    db.exec(
+        "UPDATE orders SET hospitalName='东软健康体检中心' WHERE hpId=2"
+            + " AND BINARY hospitalName=BINARY '东软健康体检中心（演示）'");
+    db.exec(
+        "UPDATE orders SET hospitalAddress='健康路1号' WHERE hpId=1"
+            + " AND BINARY hospitalAddress=BINARY '安阳市健康路1号（虚构地址）'");
+    db.exec(
+        "UPDATE orders SET hospitalAddress='康宁路2号' WHERE hpId=2"
+            + " AND BINARY hospitalAddress=BINARY '安阳市康宁路2号（虚构地址）'");
     db.exec("INSERT IGNORE INTO seed_history(seedKey) VALUES(#{p.key})", "key", key);
   }
 

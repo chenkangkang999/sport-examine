@@ -1,9 +1,10 @@
 <script setup>
-import { computed, reactive, ref } from 'vue';
+import { computed, reactive, ref, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { post, loadSession } from '../api';
 import { notify, state, localDate } from '../state';
 import FaIcon from '../components/FaIcon.vue';
+import Icon from '../components/Icon.vue';
 const route = useRoute(),
   router = useRouter(),
   register = computed(() => route.path === '/register');
@@ -17,11 +18,11 @@ const form = reactive({
     identityCard: '',
   }),
   busy = ref(false),
-  error = ref('');
-function demo() {
-  Object.assign(form, { userId: '13800000001', password: 'Health123!' });
-  error.value = '';
-}
+  error = ref(''),
+  showPassword = ref(false);
+watch(register, () => {
+  showPassword.value = false;
+});
 async function submit() {
   error.value = '';
   if (register.value && form.password !== form.confirm) {
@@ -70,19 +71,32 @@ function forgot() {
             autocomplete="tel"
             required
             placeholder="请输入手机号"
-            aria-label="手机号码" /></label
-        ><label class="login-input"
-          ><FaIcon name="lock" /><input
+            aria-label="手机号码"
+        /></label>
+        <div class="login-input login-password">
+          <FaIcon name="lock" /><input
             v-model="form.password"
+            id="login-password"
             name="password"
-            type="password"
+            :type="showPassword ? 'text' : 'password'"
             autocomplete="current-password"
             minlength="8"
             maxlength="72"
             required
             placeholder="请输入登录密码"
             aria-label="登录密码"
-        /></label>
+          /><button
+            class="login-password-toggle"
+            type="button"
+            :aria-label="showPassword ? '隐藏密码' : '显示密码'"
+            :aria-pressed="showPassword"
+            aria-controls="login-password"
+            :title="showPassword ? '隐藏密码' : '显示密码'"
+            @click="showPassword = !showPassword"
+          >
+            <Icon :name="showPassword ? 'eyeOff' : 'eye'" :size="18" />
+          </button>
+        </div>
         <div class="login-reg">
           <RouterLink to="/register">注册</RouterLink
           ><button type="button" @click="forgot">忘记密码</button>
@@ -97,9 +111,8 @@ function forgot() {
         <p>有疑问请联系客服</p>
         <span></span>
       </div>
-      <p>4008-XXX-XXX</p>
+      <p>0373-9999</p>
     </footer>
-    <button class="login-demo" @click="demo">填入演示账号</button>
   </div>
   <div v-else class="prototype-register">
     <h1>欢迎注册熙心健康</h1>
