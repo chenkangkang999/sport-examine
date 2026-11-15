@@ -15,6 +15,8 @@ import {
 } from '../state';
 import Icon from '../components/Icon.vue';
 import AsyncState from '../components/AsyncState.vue';
+import BookingProgress from '../components/BookingProgress.vue';
+import MealComparison from '../components/MealComparison.vue';
 const route = useRoute(),
   router = useRouter();
 // 预约流程：体检人 → 医院 → 套餐 → 日期 → 确认，草稿在各路由之间共享。
@@ -32,6 +34,8 @@ const persons = ref([]),
   submitting = ref(false),
   expanded = ref(null),
   details = ref({}),
+  comparisonIds = ref([]),
+  comparisonOpen = ref(false),
   agreed = ref(false);
 const month = ref(new Date(new Date().getFullYear(), new Date().getMonth(), 1));
 const person = computed(() => persons.value.find((p) => p.personId === Number(draft.personId)));
@@ -39,8 +43,23 @@ const shownPersons = computed(() =>
   persons.value.filter((p) => (bookingFor.value === 'self' ? p.isSelf : !p.isSelf)),
 );
 const selectedHospital = computed(
-  () => hospital.value || hospitals.value.find((h) => h.hpId === Number(draft.hpId)),
+  () =>
+    (Number(hospital.value?.hpId) === Number(draft.hpId) ? hospital.value : null) ||
+    hospitals.value.find((h) => h.hpId === Number(draft.hpId)),
 );
+const comparisonMeals = computed(() =>
+  comparisonIds.value.map((id) => meals.value.find((m) => m.smId === id)).filter(Boolean),
+);
+const progressSummary = computed(() => {
+  if (step.value === 0) return [];
+  const selectedMeal = meals.value.find((m) => m.smId === Number(draft.smId));
+  return [
+    person.value?.realName,
+    selectedHospital.value?.name,
+    selectedMeal?.name,
+    draft.orderDate ? dateText(draft.orderDate) : '',
+  ].filter(Boolean);
+});
 const monthLabel = computed(() => `${month.value.getFullYear()}年${month.value.getMonth() + 1}月`);
 // 前端补齐月历格子；能否预约、剩余数量均以医院排班接口为准，缺失日期默认禁用。
 const days = computed(() => {
@@ -155,14 +174,30 @@ function chooseHospital(h) {
   router.push(paths[2]);
 }
 function chooseMeal(m) {
+  comparisonOpen.value = false;
   if (draft.smId !== m.smId) setDraft({ smId: m.smId, orderDate: null, requestId: null });
   router.push(paths[3]);
+}
+function returnToStep(index) {
+  if (submitting.value || loading.value || index >= step.value || index < 0) return;
+  router.push(paths[index]);
+}
+function toggleComparison(m) {
+  if (comparisonIds.value.includes(m.smId)) {
+    comparisonIds.value = comparisonIds.value.filter((id) => id !== m.smId);
+  } else if (comparisonIds.value.length < 3) {
+    comparisonIds.value = [...comparisonIds.value, m.smId];
+  } else {
+    notify('最多选择 3 个套餐进行对比，请先移除一个套餐。', 'info');
+  }
 }
 async function expand(m) {
   expanded.value = expanded.value === m.smId ? null : m.smId;
   if (expanded.value && !details.value[m.smId]) {
+    const context = `${draft.personId}:${draft.hpId}`;
     try {
-      details.value[m.smId] = await api.meal({ hpId: draft.hpId, smId: m.smId });
+      const value = await api.meal({ hpId: draft.hpId, smId: m.smId });
+      if (context === `${draft.personId}:${draft.hpId}`) details.value[m.smId] = value;
     } catch (e) {
       notify(e.message);
     }
@@ -193,10 +228,33 @@ async function submit() {
     submitting.value = false;
   }
 }
+// 医院或体检人变化后，不能把上一组套餐详情和对比选择带入新的预约。
+watch(
+  () => [draft.personId, draft.hpId],
+  () => {
+    comparisonOpen.value = false;
+    comparisonIds.value = [];
+    expanded.value = null;
+    details.value = {};
+    hospital.value = null;
+    meal.value = null;
+    meals.value = [];
+  },
+  { flush: 'sync' },
+);
+watch(step, () => {
+  comparisonOpen.value = false;
+});
 watch(() => route.path, load, { immediate: true });
 </script>
 <template>
   <div class="prototype-booking" :class="`booking-step-${step}`">
+    <BookingProgress
+      :step="step"
+      :busy="loading || submitting"
+      :summary="progressSummary"
+      @back="returnToStep"
+    />
     <AsyncState :loading="loading" :error="error" @retry="load">
       <section v-if="step === 0" class="appointment-start">
         <img class="appointment-picture" :src="'./img/yuyue.png'" alt="唯有爱与健康不能等待" />
@@ -295,6 +353,28 @@ watch(() => route.path, load, { immediate: true });
       </section>
 
       <section v-if="step === 2" class="meal-list">
+        <div v-if="meals.length" class="meal-comparison-bar">
+          <div><strong>套餐对比</strong><span>选择 2–3 个套餐，比较检查内容</span></div>
+          <button type="button" :disabled="comparisonIds.length < 2" @click="comparisonOpen = true">
+            查看对比（{{ comparisonIds.length }}）
+          </button>
+        </div>
+        <div
+          v-if="comparisonMeals.length"
+          class="comparison-selection"
+          aria-label="已加入对比的套餐"
+        >
+          <button
+            v-for="selectedMeal in comparisonMeals"
+            :key="selectedMeal.smId"
+            type="button"
+            :aria-label="`移除对比 ${selectedMeal.name}`"
+            @click="toggleComparison(selectedMeal)"
+          >
+            {{ selectedMeal.name }}<span aria-hidden="true">×</span>
+          </button>
+          <button type="button" class="comparison-clear" @click="comparisonIds = []">清空</button>
+        </div>
         <article v-for="m in meals" :key="m.smId" class="meal-card">
           <div class="meal-card-main">
             <button class="meal-select" :aria-label="`选择套餐 ${m.name}`" @click="chooseMeal(m)">
@@ -306,6 +386,18 @@ watch(() => route.path, load, { immediate: true });
             </button>
             <button class="meal-expand" :aria-expanded="expanded === m.smId" @click="expand(m)">
               详情 <span>{{ expanded === m.smId ? '⌃' : '⌄' }}</span>
+            </button>
+          </div>
+          <div class="meal-compare-action">
+            <span>先对比，再选择适合的套餐</span
+            ><button
+              type="button"
+              :class="{ added: comparisonIds.includes(m.smId) }"
+              :aria-pressed="comparisonIds.includes(m.smId)"
+              :aria-label="`${comparisonIds.includes(m.smId) ? '移出对比' : '加入对比'} ${m.name}`"
+              @click="toggleComparison(m)"
+            >
+              {{ comparisonIds.includes(m.smId) ? '✓ 已加入对比' : '＋ 加入对比' }}
             </button>
           </div>
           <div v-if="expanded === m.smId" class="meal-details">
@@ -462,6 +554,14 @@ watch(() => route.path, load, { immediate: true });
         <button :disabled="submitting" @click="router.push(paths[step - 1])">‹ 返回上一步</button>
       </div>
     </AsyncState>
+    <MealComparison
+      v-if="step === 2"
+      :open="comparisonOpen"
+      :hp-id="draft.hpId"
+      :meals="comparisonMeals"
+      @close="comparisonOpen = false"
+      @choose="chooseMeal"
+    />
   </div>
 </template>
 <style scoped>
@@ -502,7 +602,7 @@ watch(() => route.path, load, { immediate: true });
 .person-choice-heading {
   display: flex;
   justify-content: space-between;
-  font-size: 12px;
+  font-size: calc(12px * var(--reading-scale, 1));
   color: #888;
   margin-bottom: 6px;
 }
@@ -523,18 +623,18 @@ watch(() => route.path, load, { immediate: true });
   box-shadow: none;
 }
 .person-select strong {
-  font-size: 15px;
+  font-size: calc(15px * var(--reading-scale, 1));
   font-weight: 500;
   display: block;
 }
 .person-select small {
   display: block;
-  font-size: 11px;
+  font-size: calc(11px * var(--reading-scale, 1));
   color: #999;
   margin-top: 3px;
 }
 .small-note {
-  font-size: 11px;
+  font-size: calc(11px * var(--reading-scale, 1));
   line-height: 1.7;
   color: #999;
   margin: 13px 0;
@@ -560,7 +660,7 @@ watch(() => route.path, load, { immediate: true });
   text-align: left;
 }
 .hospital-title h3 {
-  font-size: 16px;
+  font-size: calc(16px * var(--reading-scale, 1));
   line-height: 1.4;
   font-weight: 600;
   padding-left: 9px;
@@ -581,7 +681,7 @@ watch(() => route.path, load, { immediate: true });
 .hospital-info table {
   flex: 1;
   width: 72%;
-  font-size: 12px;
+  font-size: calc(12px * var(--reading-scale, 1));
   line-height: 1.6;
   border-collapse: collapse;
 }
@@ -608,13 +708,101 @@ watch(() => route.path, load, { immediate: true });
   gap: 5px;
   min-height: 30px;
   padding: 2px 10px;
-  font-size: 12px;
+  font-size: calc(12px * var(--reading-scale, 1));
   border: 1px solid #73b2c2;
   border-radius: 5px;
   color: #41899d;
 }
 .meal-list {
-  padding: 36px 3.6% 14px;
+  padding: 18px 3.6% 14px;
+}
+.meal-comparison-bar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 13px;
+  padding: 12px;
+  background: #edf6f5;
+  border: 1px solid #deedeb;
+  border-radius: 7px;
+}
+.meal-comparison-bar strong {
+  font-size: calc(13px * var(--reading-scale, 1));
+  font-weight: 600;
+  color: #397b83;
+}
+.meal-comparison-bar span {
+  display: block;
+  font-size: calc(10px * var(--reading-scale, 1));
+  color: #7c9599;
+  margin-top: 3px;
+}
+.meal-comparison-bar > button {
+  min-height: 33px;
+  padding: 5px 9px;
+  flex-shrink: 0;
+  background: #137e92;
+  color: #fff;
+  font-size: calc(11px * var(--reading-scale, 1));
+  border-radius: 5px;
+}
+.meal-comparison-bar > button:disabled {
+  background: #a9c6ca;
+  opacity: 1;
+}
+.comparison-selection {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  margin: 0 0 13px;
+}
+.comparison-selection > button {
+  padding: 5px 7px;
+  font-size: calc(10px * var(--reading-scale, 1));
+  line-height: 1.6;
+  color: #46848c;
+  background: #f1f7f7;
+  border: 1px solid #dcebea;
+  border-radius: 4px;
+  overflow-wrap: anywhere;
+  text-align: left;
+}
+.comparison-selection > button > span {
+  padding-left: 7px;
+}
+.comparison-selection > .comparison-clear {
+  background: transparent;
+  border-color: transparent;
+  color: #8b9da0;
+}
+.meal-compare-action {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 8px 11px;
+  border-top: 1px solid #eef2f2;
+}
+.meal-compare-action > span {
+  color: #99a7a9;
+  font-size: calc(10px * var(--reading-scale, 1));
+}
+.meal-compare-action > button {
+  flex-shrink: 0;
+  min-height: 29px;
+  padding: 3px 8px;
+  border: 1px solid #d3e5e7;
+  border-radius: 4px;
+  color: #4c8790;
+  background: #fff;
+  font-size: calc(11px * var(--reading-scale, 1));
+}
+.meal-compare-action > button.added {
+  color: #278579;
+  border-color: #bdded8;
+  background: #f0f9f6;
 }
 .meal-card {
   background: #fff;
@@ -638,15 +826,15 @@ watch(() => route.path, load, { immediate: true });
   color: #555;
 }
 .meal-select strong {
-  font-size: 16px;
+  font-size: calc(16px * var(--reading-scale, 1));
   font-weight: 600;
 }
 .meal-select span {
-  font-size: 13px;
+  font-size: calc(13px * var(--reading-scale, 1));
   line-height: 1.5;
 }
 .meal-select small {
-  font-size: 11px;
+  font-size: calc(11px * var(--reading-scale, 1));
   color: #999;
   margin-top: 2px;
 }
@@ -654,19 +842,19 @@ watch(() => route.path, load, { immediate: true });
   width: 78px;
   flex-shrink: 0;
   border-left: 1px solid #eee;
-  font-size: 13px;
+  font-size: calc(13px * var(--reading-scale, 1));
   color: #777;
   padding: 0 9px;
 }
 .meal-expand span {
   margin-left: 5px;
-  font-size: 16px;
+  font-size: calc(16px * var(--reading-scale, 1));
 }
 .meal-details table {
   width: 100%;
   table-layout: fixed;
   border-collapse: collapse;
-  font-size: 12px;
+  font-size: calc(12px * var(--reading-scale, 1));
 }
 .meal-details th {
   font-weight: 400;
@@ -684,7 +872,7 @@ watch(() => route.path, load, { immediate: true });
 .meal-details td small {
   display: block;
   color: #999;
-  font-size: 10px;
+  font-size: calc(10px * var(--reading-scale, 1));
   margin-top: 4px;
 }
 .meal-note {
@@ -706,12 +894,12 @@ watch(() => route.path, load, { immediate: true });
   padding: 0 4px;
 }
 .calendar-heading h2 {
-  font-size: 16px;
+  font-size: calc(16px * var(--reading-scale, 1));
   font-weight: 600;
   margin: 0;
 }
 .calendar-heading button {
-  font-size: 27px;
+  font-size: calc(27px * var(--reading-scale, 1));
   line-height: 34px;
   width: 34px;
   padding: 0;
@@ -726,7 +914,7 @@ watch(() => route.path, load, { immediate: true });
 .calendar-week {
   margin: 0 0 14px;
   text-align: center;
-  font-size: 13px;
+  font-size: calc(13px * var(--reading-scale, 1));
   font-weight: 600;
 }
 .calendar-week span {
@@ -750,7 +938,7 @@ watch(() => route.path, load, { immediate: true });
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 14px;
+  font-size: calc(14px * var(--reading-scale, 1));
   width: 26px;
   height: 26px;
   line-height: 26px;
@@ -758,7 +946,7 @@ watch(() => route.path, load, { immediate: true });
   font-weight: 500;
 }
 .calendar-day small {
-  font-size: 10px;
+  font-size: calc(10px * var(--reading-scale, 1));
   line-height: 14px;
   color: #999;
   white-space: nowrap;
@@ -781,7 +969,7 @@ watch(() => route.path, load, { immediate: true });
   color: #137e92;
 }
 .selected-date {
-  font-size: 12px;
+  font-size: calc(12px * var(--reading-scale, 1));
   text-align: center;
   color: #777;
   margin: 24px 0 4px;
@@ -807,26 +995,26 @@ watch(() => route.path, load, { immediate: true });
   display: flex;
   align-items: center;
   padding-left: 6%;
-  font-size: 15px;
+  font-size: calc(15px * var(--reading-scale, 1));
 }
 .booking-bottom > button {
   min-width: 34%;
   padding: 0 12px;
   background: #117c94;
   color: #fff;
-  font-size: 16px;
+  font-size: calc(16px * var(--reading-scale, 1));
   border-radius: 0;
 }
 .booking-bottom button:disabled {
   opacity: 0.5;
 }
 .payment-bottom strong {
-  font-size: 18px;
+  font-size: calc(18px * var(--reading-scale, 1));
   color: #f77b2d;
   font-weight: 400;
 }
 .payment-bottom > button {
-  font-size: 14px;
+  font-size: calc(14px * var(--reading-scale, 1));
   min-width: 40%;
 }
 .confirm-main {
@@ -837,7 +1025,7 @@ watch(() => route.path, load, { immediate: true });
   align-items: center;
   min-height: 49px;
   border-bottom: 1px solid #eee;
-  font-size: 15px;
+  font-size: calc(15px * var(--reading-scale, 1));
   font-weight: 600;
   margin: 0 0 9px;
   padding: 0;
@@ -851,7 +1039,7 @@ watch(() => route.path, load, { immediate: true });
   background: #127a90;
 }
 .confirm-section .detail-list {
-  font-size: 12px;
+  font-size: calc(12px * var(--reading-scale, 1));
   color: #555;
   display: block;
   padding: 0;
@@ -875,7 +1063,7 @@ watch(() => route.path, load, { immediate: true });
   overflow-wrap: anywhere;
 }
 .section-value {
-  font-size: 13px;
+  font-size: calc(13px * var(--reading-scale, 1));
   margin: 10px 0 13px;
   line-height: 1.8;
 }
@@ -883,7 +1071,7 @@ watch(() => route.path, load, { immediate: true });
   display: flex;
   align-items: flex-start;
   gap: 7px;
-  font-size: 11px;
+  font-size: calc(11px * var(--reading-scale, 1));
   line-height: 1.8;
   color: #888;
   margin: 23px 0 5px;
@@ -896,7 +1084,7 @@ watch(() => route.path, load, { immediate: true });
   padding: 6px 7% 15px;
 }
 .booking-back button {
-  font-size: 12px;
+  font-size: calc(12px * var(--reading-scale, 1));
   color: #137e92;
   padding: 5px 0;
 }
@@ -909,10 +1097,10 @@ watch(() => route.path, load, { immediate: true });
     bottom: 55px;
   }
   .hospital-title h3 {
-    font-size: 14px;
+    font-size: calc(14px * var(--reading-scale, 1));
   }
   .hospital-info table {
-    font-size: 11px;
+    font-size: calc(11px * var(--reading-scale, 1));
   }
   .hospital-info td:first-child {
     width: 55px;

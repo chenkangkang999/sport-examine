@@ -88,7 +88,7 @@ function explain(name) {
 onMounted(load);
 </script>
 <template>
-  <div class="prototype-personal">
+  <div class="prototype-personal" :class="{ 'personal-menu-view': tab === 'menu' }">
     <template v-if="tab === 'menu'"
       ><section class="personal-info">
         <img src="/img/user.png" alt="用户头像" />

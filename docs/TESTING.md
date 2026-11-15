@@ -27,6 +27,7 @@ Pop-Location
 ```powershell
 npm run test:api
 node tests/api-races.mjs
+node tests/api-experience.mjs
 ```
 
 默认连接 `http://127.0.0.1:18080`，其他端口设置 `$env:API_BASE`。脚本只创建带测试标识的虚构账号与资源，保留记录便于排查，不清理业务数据库。
@@ -37,14 +38,17 @@ node tests/api-races.mjs
 
 结果保存在 `output/test-results/api-results.json` 和 `race-results.json`。
 
+`api-experience.mjs` 验证首页查询、预约/取消/归档通知幂等、消息分页及已读持久化、跨账号与 CSRF 拦截、机构指南、医生待办筛选、两次真实归档报告的趋势与管理员统计口径。脚本创建单独的虚构账号、机构、套餐和医生；成功后停用它创建的机构与套餐，保留历史报告供复查。结果为 `experience-api.json`，预览账号和报告标识为 `experience-fixture.json`，都位于忽略上传的输出目录。
+
 ## 浏览器验收
 
 ```powershell
 npm install
+npm run test:experience
 npm run test:e2e
 ```
 
-使用本机已安装 Edge 的无界面测试模式。默认用户端 8081，管理端 8089，可用 `USER_ORIGIN`、`MANAGE_ORIGIN` 覆盖。测试通过真实页面完成家属预约、医生分项录入和归档，再在用户手机布局查看报告；另检查管理员各模块和移动端无横向溢出。
+使用本机已安装 Edge 的无界面测试模式。默认用户端 8081，管理端 8089，可用 `USER_ORIGIN`、`MANAGE_ORIGIN` 覆盖。首次运行新体验浏览器测试前，先运行 `test:experience` 生成独立账号及两份归档报告；已经生成后可直接重复浏览器检查。测试通过真实页面完成家属预约、医生分项录入和归档，再在用户手机布局查看报告；另检查管理员各模块、大字模式、真实趋势和移动端无横向溢出。
 
 页面截图保存在 `output/screenshots`，失败跟踪保存在 `output/test-results/browser`，HTML报告保存在 `output/playwright-report`。
 

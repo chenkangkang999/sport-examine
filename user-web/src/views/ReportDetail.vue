@@ -1,15 +1,22 @@
 <script setup>
-import { computed, ref, watch } from 'vue';
+import { computed, nextTick, onBeforeUnmount, ref, watch } from 'vue';
 import { useRoute } from 'vue-router';
 import { api } from '../api';
 import { dateText, sexText } from '../state';
 import Icon from '../components/Icon.vue';
 import AsyncState from '../components/AsyncState.vue';
+import ReportPrint from '../components/ReportPrint.vue';
+import ReferenceRange from '../components/ReferenceRange.vue';
+import { formatReference } from '../utils/reportMetrics';
 const route = useRoute(),
   data = ref(null),
   loading = ref(true),
   error = ref(''),
-  tab = ref('summary');
+  tab = ref('summary'),
+  printing = ref(false);
+const canPrint = computed(
+  () => !loading.value && !error.value && Number(data.value?.order.state) === 2,
+);
 const abnormal = computed(
   () =>
     data.value?.items?.flatMap((i) =>
@@ -18,27 +25,39 @@ const abnormal = computed(
         .map((d) => ({ ...d, ciName: i.ciName })),
     ) || [],
 );
-function range(d) {
-  const value = (n) => (n == null ? '' : Number(n).toString());
-  if (Number(d.type) === 1) {
-    if (d.minrange == null) return '≤ ' + value(d.maxrange);
-    if (d.maxrange == null) return '≥ ' + value(d.minrange);
-    return value(d.minrange) + ' - ' + value(d.maxrange);
-  }
-  if (Number(d.type) === 2) return d.normalValueString || value(d.normalValue);
-  return d.normalValueString || '';
-}
+const range = formatReference;
+let loadId = 0;
 async function load() {
+  const request = ++loadId;
   loading.value = true;
   error.value = '';
+  data.value = null;
+  tab.value = 'summary';
   try {
-    data.value = await api.report(route.params.orderId);
+    const report = await api.report(route.params.orderId);
+    if (request === loadId) data.value = report;
   } catch (e) {
-    error.value = e.message;
+    if (request === loadId) error.value = e.message;
   } finally {
-    loading.value = false;
+    if (request === loadId) loading.value = false;
   }
 }
+async function printReport() {
+  if (!canPrint.value || printing.value) return;
+  const request = loadId;
+  printing.value = true;
+  try {
+    // 打印独立完整副本，不受屏幕上当前选择的报告标签影响。
+    await nextTick();
+    if (document.fonts?.ready) await document.fonts.ready;
+    if (request === loadId && canPrint.value) window.print();
+  } finally {
+    printing.value = false;
+  }
+}
+onBeforeUnmount(() => {
+  loadId++;
+});
 watch(() => route.params.orderId, load, { immediate: true });
 </script>
 <template>
@@ -60,6 +79,21 @@ watch(() => route.params.orderId, load, { immediate: true });
     </nav>
     <AsyncState :loading="loading" :error="error" @retry="load"
       ><template v-if="data">
+        <div class="report-print-toolbar">
+          <button
+            class="report-print-button"
+            :disabled="!canPrint || printing"
+            @click="printReport"
+          >
+            <Icon name="report" :size="16" />{{ printing ? '正在打开…' : '打印 / 保存 PDF' }}
+          </button>
+          <RouterLink
+            class="report-trends-link"
+            :to="{ path: '/trends', query: { personId: data.order.personId } }"
+            >历次指标 ›</RouterLink
+          >
+          <small>打印包含完整报告。在打印窗口选择“另存为 PDF”即可保存。</small>
+        </div>
         <p class="report-person-note">
           {{ dateText(data.order.orderDate) }} · {{ data.order.personName }} ·
           {{ sexText(data.order.personSex) }}
@@ -77,6 +111,21 @@ watch(() => route.params.orderId, load, { immediate: true });
                   {{ detail.value }} <span>{{ detail.unit }}</span>
                 </p>
                 <small v-if="range(detail)">正常范围：{{ range(detail) }}</small>
+                <ReferenceRange :detail="detail" />
+                <RouterLink
+                  v-if="detail.sourceDetailId && [1, 2, 3].includes(Number(detail.type))"
+                  class="detail-trends-link"
+                  :to="{
+                    path: '/trends',
+                    query: {
+                      personId: data.order.personId,
+                      detail: detail.sourceDetailId,
+                      unit: detail.unit || '',
+                      orderId: data.order.orderId,
+                    },
+                  }"
+                  >查看历次变化 ›</RouterLink
+                >
               </div>
             </div>
           </section>
@@ -113,9 +162,24 @@ watch(() => route.params.orderId, load, { immediate: true });
               </div>
               <div class="indication-value">
                 <p>
-                  {{ detail.value || '—' }} <span>{{ detail.unit }}</span>
+                  {{ detail.value ?? '—' }} <span>{{ detail.unit }}</span>
                 </p>
                 <small v-if="range(detail)">正常范围：{{ range(detail) }}</small>
+                <ReferenceRange :detail="detail" />
+                <RouterLink
+                  v-if="detail.sourceDetailId && [1, 2, 3].includes(Number(detail.type))"
+                  class="detail-trends-link"
+                  :to="{
+                    path: '/trends',
+                    query: {
+                      personId: data.order.personId,
+                      detail: detail.sourceDetailId,
+                      unit: detail.unit || '',
+                      orderId: data.order.orderId,
+                    },
+                  }"
+                  >查看历次变化 ›</RouterLink
+                >
               </div>
             </div>
           </section>
@@ -126,8 +190,45 @@ watch(() => route.params.orderId, load, { immediate: true });
       </template></AsyncState
     >
   </div>
+  <ReportPrint v-if="canPrint" :report="data" :format-range="range" />
 </template>
 <style scoped>
+.report-trends-link {
+  color: #137e92;
+  font-size: calc(12px * var(--reading-scale, 1));
+  padding: 7px 4px;
+}
+.detail-trends-link {
+  display: inline-block;
+  color: #378b94;
+  font-size: calc(10px * var(--reading-scale, 1));
+  margin-top: 7px;
+}
+.report-print-toolbar {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 12px 3.6% 0;
+}
+.report-print-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-height: 36px;
+  padding: 7px 12px;
+  border: 1px solid #b8d8dd;
+  border-radius: 6px;
+  background: #eff8f9;
+  color: #137e92;
+  font-size: calc(12px * var(--reading-scale, 1));
+}
+.report-print-toolbar small {
+  font-size: calc(11px * var(--reading-scale, 1));
+  line-height: 1.7;
+  color: #7b8e93;
+}
 .report-document {
   padding-top: 52px;
   min-height: calc(100dvh - 124px);
@@ -147,7 +248,7 @@ watch(() => route.params.orderId, load, { immediate: true });
 }
 .report-detail-tabs > button {
   flex: 1;
-  font-size: 15px;
+  font-size: calc(15px * var(--reading-scale, 1));
   font-weight: 600;
   color: #555;
   border-bottom: 2px solid transparent;
@@ -161,7 +262,7 @@ watch(() => route.params.orderId, load, { immediate: true });
   color: #137e92;
 }
 .report-person-note {
-  font-size: 10px;
+  font-size: calc(10px * var(--reading-scale, 1));
   color: #999;
   text-align: center;
   line-height: 1.7;
@@ -179,7 +280,7 @@ watch(() => route.params.orderId, load, { immediate: true });
 .prototype-report-section > h2 {
   background: #7bafd7;
   color: #fff;
-  font-size: 14px;
+  font-size: calc(14px * var(--reading-scale, 1));
   font-weight: 400;
   line-height: 1.7;
   padding: 8px 14px;
@@ -193,7 +294,7 @@ watch(() => route.params.orderId, load, { immediate: true });
   padding: 12px 12px;
   min-height: 59px;
   border-bottom: 1px solid #eee;
-  font-size: 12px;
+  font-size: calc(12px * var(--reading-scale, 1));
   line-height: 1.65;
 }
 .indications:last-child {
@@ -209,13 +310,13 @@ watch(() => route.params.orderId, load, { immediate: true });
 }
 .indication-name strong {
   font-weight: 600;
-  font-size: 12px;
+  font-size: calc(12px * var(--reading-scale, 1));
   overflow-wrap: anywhere;
 }
 .error-label {
   background: #ba634e;
   color: #fff;
-  font-size: 11px;
+  font-size: calc(11px * var(--reading-scale, 1));
   line-height: 17px;
   min-width: 17px;
   height: 17px;
@@ -233,21 +334,21 @@ watch(() => route.params.orderId, load, { immediate: true });
 .indication-value p {
   margin: 0;
   color: #555;
-  font-size: 12px;
+  font-size: calc(12px * var(--reading-scale, 1));
   white-space: pre-wrap;
 }
 .indication-value p > span {
-  font-size: 11px;
+  font-size: calc(11px * var(--reading-scale, 1));
   color: #777;
 }
 .indication-value small {
-  font-size: 10px;
+  font-size: calc(10px * var(--reading-scale, 1));
   color: #999;
   line-height: 1.6;
   display: block;
 }
 .conclusion-title {
-  font-size: 13px;
+  font-size: calc(13px * var(--reading-scale, 1));
   line-height: 1.8;
   padding: 12px;
   border-bottom: 1px solid #eee;
@@ -264,14 +365,14 @@ watch(() => route.params.orderId, load, { immediate: true });
   border-bottom: 0;
 }
 .conclusion-content h3 {
-  font-size: 14px;
+  font-size: calc(14px * var(--reading-scale, 1));
   font-weight: 600;
   line-height: 1.8;
   margin: 0 0 7px;
   color: #555;
 }
 .conclusion-content p {
-  font-size: 12px;
+  font-size: calc(12px * var(--reading-scale, 1));
   line-height: 1.9;
   text-indent: 2em;
   white-space: pre-wrap;
@@ -281,13 +382,13 @@ watch(() => route.params.orderId, load, { immediate: true });
 }
 .normal-note {
   padding: 15px 12px;
-  font-size: 12px;
+  font-size: calc(12px * var(--reading-scale, 1));
   color: #999;
   margin: 0;
 }
 .report-hospital-note {
   text-align: center;
-  font-size: 10px;
+  font-size: calc(10px * var(--reading-scale, 1));
   line-height: 1.8;
   color: #aaa;
   margin: 18px 6% 15px;

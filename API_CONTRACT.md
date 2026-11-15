@@ -56,8 +56,35 @@ resource 为 `hospitals,setmeals,checkitems,doctors`。主键分别 `hpId,smId,c
 - GET `/tijiancms/admin/hospital-setmeals?hpId=1` 返回 smId 数组；POST `/tijiancms/admin/hospital-setmeals/save` `{hpId,smIds:[1,2]}`。
 - GET `/tijiancms/admin/schedules?hpId=1&from=2026-11-01&to=2026-11-30` 返回 `[{hpId,date,capacity,used,remaining,available}]`；POST `/tijiancms/admin/schedules/save` `{hpId,from,to,capacity,weekdays:[1,2,3,4,5]}`。区间中未勾选的星期容量为0，变更不能低于已用名额。
 
+## 新增体验接口
+
+以下接口沿用会话与 CSRF 校验、统一响应和错误码。GET 返回只读数据，POST 写请求必须带 `X-CSRF-Token`。
+
+| 方法与路径                                     | 参数                                  | data                                                               |
+| ---------------------------------------------- | ------------------------------------- | ------------------------------------------------------------------ |
+| GET `/tijian/dashboard`                        | 无                                    | `{appointment,latestReport,unreadCount}`，订单对象可为 null        |
+| GET `/tijian/notifications`                    | `page=1,pageSize=20,unreadOnly=false` | `{items,total,page,pageSize,unreadCount}`                          |
+| POST `/tijian/notifications/read`              | `{id}`                                | `{unreadCount}`                                                    |
+| POST `/tijian/notifications/read-all`          | `{}`                                  | `{unreadCount}`                                                    |
+| GET `/tijian/reports/trends`                   | `personId`                            | `{personId,personName,series}`                                     |
+| GET `/tijian/orders/guidance`                  | `orderId`                             | `{preparation,arrivalSteps}`                                       |
+| GET `/tijiancms/workbench`                     | `hpId?`                               | `{todayCount,pendingEntry,pendingArchive,archivedCount,todayDate}` |
+| GET `/tijiancms/admin/hospital-guidance`       | `hpId`                                | `{hpId,preparation,arrivalSteps}`                                  |
+| POST `/tijiancms/admin/hospital-guidance/save` | `{hpId,preparation,arrivalSteps}`     | 保存后的机构指南                                                   |
+| GET `/tijiancms/admin/statistics`              | `from?,to?,hpId?`，最多366天          | `{from,to,hpId,totals,daily,popularMeals,hospitalSummary}`         |
+
+消息字段：`{id,orderId,type,title,content,isRead,createdAt}`，type 为 BOOKED/CANCELLED/ARCHIVED。只能读取或修改本人的消息；单条和全部已读均幂等。历史通知在启动时补齐，不重置已读状态。
+
+趋势 series：`[{key,sourceDetailId,name,unit,type,points:[{orderId,orderDate,value,minrange,maxrange,normalValue,normalValueString,isError}]}]`。仅返回该账号拥有的体检人已归档报告；不同单位、类型或源明细分开，同次参考范围使用历史快照。类型3的文本只有可以转换为数值时才参与趋势。报告 `items.details` 同时增加 `sourceDetailId`，用于跳转定位。
+
+订单查询额外接受 `workStage=unstarted|started|today`：分别限定未开始录入、已开始录入、今日有效预约。其他值返回400；与已有筛选条件共同生效。医生的医院范围由后端强制指定，即使提交其他 hpId 也不能越过自身范围。`pendingArchive` 为“录入中／待归档”，不代表结果已全部填写。
+
+统计仅限管理员。`totals` 为 `{appointments,active,archived,cancelled,capacity,used,utilization,archiveRate}`；`daily` 每日多一个 `date` 且不含 archiveRate；`popularMeals` 为 `{smId,name,appointments,amount}` 数组；`hospitalSummary` 为 `{hpId,name,appointments,active,archived,cancelled}` 数组。订单与名额均按体检日期计，使用率与归档率返回0–100的百分数，分母为零时为0。归档率为已归档／有效预约数，不计取消；热门套餐仅计有效订单，采用历史套餐名。
+
+指南由管理员维护，订单读取要求归属当前账号。两段文案各不超过2000字符；空白使用通用提示，不虚构具体检查准备要求。
+
 ## 演示账号
 
 - 用户 `13800000001 / Health123!`
-- 医院1医生 `D001 / Doctor123!`，医院2医生 `D002 / Doctor123!`
+- 和平院区（hpId=1）医生 `D001 / Doctor123!`，建设院区（hpId=2）医生 `D002 / Doctor123!`
 - 管理员 `admin / Admin123!`

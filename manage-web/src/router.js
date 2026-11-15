@@ -6,6 +6,7 @@ const Report = () => import('./views/Report.vue');
 const Catalog = () => import('./views/Catalog.vue');
 const Schedules = () => import('./views/Schedules.vue');
 const Associations = () => import('./views/Associations.vue');
+const Statistics = () => import('./views/Statistics.vue');
 const router = createRouter({
   // 与用户端一致使用 Hash 路由；各业务页按需导入，减少首次加载内容。
   history: createWebHashHistory(),
@@ -14,6 +15,7 @@ const router = createRouter({
     { path: '/', redirect: '/orders' },
     { path: '/orders', component: Orders, meta: { title: '预约与报告' } },
     { path: '/orders/:id', component: Report, meta: { title: '体检报告' } },
+    { path: '/statistics', component: Statistics, meta: { title: '数据统计', admin: true } },
     {
       path: '/catalog/:resource(hospitals|setmeals|checkitems|doctors)',
       component: Catalog,

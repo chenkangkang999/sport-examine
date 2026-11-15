@@ -33,6 +33,9 @@ onMounted(async () => {
 <template>
   <section class="health-records">
     <img class="report-banner" :src="'./img/report.png'" alt="免费解读体检报告" />
+    <RouterLink class="trend-entry" :to="{ path: '/trends', query: personId ? { personId } : {} }"
+      >查看历次指标趋势 ›</RouterLink
+    >
     <div class="report-filter">
       <label
         >体检人<select v-model="personId" aria-label="选择报告体检人">
@@ -72,6 +75,13 @@ onMounted(async () => {
   </section>
 </template>
 <style scoped>
+.trend-entry {
+  display: block;
+  padding: 12px 7% 2px;
+  color: #137e92;
+  font-size: calc(12px * var(--reading-scale, 1));
+  text-align: right;
+}
 .health-records {
   min-height: calc(100dvh - 124px);
   color: #555;
@@ -86,7 +96,7 @@ onMounted(async () => {
   justify-content: space-between;
   align-items: center;
   margin: 10px 7% 0;
-  font-size: 11px;
+  font-size: calc(11px * var(--reading-scale, 1));
   color: #999;
   gap: 10px;
 }
@@ -96,7 +106,7 @@ onMounted(async () => {
   gap: 7px;
 }
 .report-filter select {
-  font-size: 11px;
+  font-size: calc(11px * var(--reading-scale, 1));
   color: #777;
   background: #fff;
   border: 1px solid #e7e7e7;
@@ -106,7 +116,7 @@ onMounted(async () => {
   max-width: 120px;
 }
 .report-filter > small {
-  font-size: 10px;
+  font-size: calc(10px * var(--reading-scale, 1));
 }
 .report-list {
   display: block;
@@ -135,21 +145,21 @@ onMounted(async () => {
   flex: 1;
 }
 .report-row-copy h2 {
-  font-size: 14px;
+  font-size: calc(14px * var(--reading-scale, 1));
   font-weight: 600;
   color: #555;
   line-height: 1.5;
   margin: 0;
 }
 .report-row-copy p {
-  font-size: 11px;
+  font-size: calc(11px * var(--reading-scale, 1));
   color: #999;
   font-weight: 500;
   line-height: 1.6;
   margin: 3px 0 0;
 }
 .report-row-copy small {
-  font-size: 10px;
+  font-size: calc(10px * var(--reading-scale, 1));
   color: #aaa;
   line-height: 1.5;
   display: block;

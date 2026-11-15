@@ -1,7 +1,8 @@
 <script setup>
-import { onMounted, reactive, ref } from 'vue';
+import { computed, onBeforeUnmount, onMounted, reactive, ref } from 'vue';
 import { useRouter } from 'vue-router';
 import { get, session, sexText } from '../api';
+import WorkbenchCards from '../components/WorkbenchCards.vue';
 const router = useRouter(),
   loading = ref(false),
   failure = ref(''),
@@ -17,29 +18,39 @@ const filters = reactive({
   smId: '',
   orderDate: '',
   state: 1,
+  workStage: '',
   hpId: '',
   page: 1,
   pageSize: 10,
 });
+const activeStage = computed(() => filters.workStage || (filters.state === 2 ? 'archived' : ''));
+let request = 0;
 async function load() {
+  const current = ++request;
   loading.value = true;
   failure.value = '';
   try {
-    const result = await get('/orders/listOrders', filters);
+    const result = await get('/orders/listOrders', { ...filters });
+    if (current !== request) return;
     rows.value = result.items;
     total.value = result.total;
   } catch (e) {
-    failure.value = e.message;
+    if (current === request) {
+      rows.value = [];
+      total.value = 0;
+      failure.value = e.message;
+    }
   } finally {
-    loading.value = false;
+    if (current === request) loading.value = false;
   }
 }
 function search() {
   // 更换筛选条件时回到第一页，避免沿用旧页码而误显示空列表。
   filters.page = 1;
+  filters.workStage = '';
   load();
 }
-function reset() {
+function clearFilters(hpId = '') {
   Object.assign(filters, {
     userId: '',
     realName: '',
@@ -47,11 +58,28 @@ function reset() {
     smId: '',
     orderDate: '',
     state: 1,
-    hpId: '',
+    hpId,
+    workStage: '',
     page: 1,
   });
+}
+function reset() {
+  clearFilters();
   load();
 }
+function selectStage(stage) {
+  const hospital = filters.hpId;
+  clearFilters(hospital);
+  if (stage === 'archived') filters.state = 2;
+  else {
+    filters.workStage = stage;
+    filters.state = stage === 'today' ? '' : 1;
+  }
+  load();
+}
+onBeforeUnmount(() => {
+  request++;
+});
 onMounted(async () => {
   load();
   // 套餐和管理员医院选项独立加载，某组元数据失败不阻断另一组显示。
@@ -126,6 +154,15 @@ onMounted(async () => {
       </el-form>
     </aside>
     <section class="manual-orders-content">
+      <WorkbenchCards :hp-id="filters.hpId" :active="activeStage" @select="selectStage" />
+      <div v-if="filters.workStage" class="workbench-filter-note">
+        当前快捷筛选：{{
+          { today: '今日有效预约', unstarted: '待录入', started: '录入中 / 待归档' }[
+            filters.workStage
+          ]
+        }}
+        <el-button link type="primary" @click="search">取消快捷筛选</el-button>
+      </div>
       <el-alert
         v-if="failure"
         :title="failure"

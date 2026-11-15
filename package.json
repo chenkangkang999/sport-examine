@@ -6,6 +6,7 @@
   "scripts": {
     "test:api": "node tests/api-smoke.mjs",
     "test:race": "node tests/api-races.mjs",
+    "test:experience": "node tests/api-experience.mjs",
     "test:e2e": "playwright test",
     "build": "pwsh -NoProfile -File scripts/build.ps1"
   },

@@ -38,7 +38,7 @@ async function submit() {
 <template>
   <div class="manual-login-page">
     <section class="manual-login-box">
-      <h1>Neusoft&nbsp; 东软体检报告管理系统</h1>
+      <h1>体检报告管理系统</h1>
       <div class="manual-login-body">
         <h2>医生 / 管理员登录</h2>
         <el-alert

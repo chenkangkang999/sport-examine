@@ -1,9 +1,11 @@
 <script setup>
-import { computed } from 'vue';
+import { computed, watch, onBeforeUnmount } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { state, notify } from './state';
 import Icon from './components/Icon.vue';
 import FaIcon from './components/FaIcon.vue';
+import ReadingSizeButton from './components/ReadingSizeButton.vue';
+import { get } from './api';
 const route = useRoute(),
   router = useRouter();
 const login = computed(() => route.path === '/login'),
@@ -38,26 +40,65 @@ function back() {
 function explain(name) {
   notify(`${name}是原型保留入口，本课程项目暂未接入该项外部服务。`, 'info');
 }
+let unreadRequest = 0;
+watch(
+  () => [route.fullPath, state.user?.userId],
+  async () => {
+    const request = ++unreadRequest;
+    if (!state.user) {
+      state.unreadCount = 0;
+      return;
+    }
+    try {
+      const data = await get('/notifications', { page: 1, pageSize: 1 });
+      if (request === unreadRequest) state.unreadCount = Number(data.unreadCount || 0);
+    } catch {
+      /* 消息数量加载失败不阻断当前业务页面。 */
+    }
+  },
+  { immediate: true },
+);
+onBeforeUnmount(() => {
+  unreadRequest++;
+});
 </script>
 <template>
-  <div :class="['app-shell', { 'login-shell': login, 'register-shell': register }]">
+  <div v-if="!login" class="care-backdrop" aria-hidden="true"></div>
+  <div
+    :class="[
+      'app-shell',
+      {
+        'login-shell': login,
+        'register-shell': register,
+        'home-shell': home,
+        'care-shell': !login,
+      },
+    ]"
+  >
+    <div v-if="login" class="login-reading-control"><ReadingSizeButton /></div>
     <header v-if="!login" :class="['prototype-header', { 'home-header': home }]">
       <template v-if="home"
         ><button class="home-hospital" @click="notify('在体检预约中可选择体检医院。', 'info')">
           <Icon class="cloud-hospital-mark" name="cloudHospital" :size="26" /><span>云医院</span>
-          <FaIcon name="down" /></button
-        ><button
-          class="header-message"
-          aria-label="消息"
-          @click="notify('暂无新的系统消息。', 'info')"
-        >
-          <FaIcon name="envelope" /></button
-      ></template>
+          <FaIcon name="down" />
+        </button>
+        <div class="header-actions">
+          <ReadingSizeButton /><RouterLink
+            class="header-message"
+            to="/messages"
+            :aria-label="state.unreadCount ? `消息，${state.unreadCount}条未读` : '消息'"
+          >
+            <FaIcon name="envelope" /><span v-if="state.unreadCount" class="message-badge">{{
+              state.unreadCount > 99 ? '99+' : state.unreadCount
+            }}</span></RouterLink
+          >
+        </div></template
+      >
       <template v-else
         ><button class="header-back" aria-label="返回" @click="back"><FaIcon name="back" /></button>
         <h1>{{ title }}</h1>
-        <span class="header-spacer"></span
-      ></template>
+        <ReadingSizeButton />
+      </template>
     </header>
     <main :class="login ? 'login-main' : 'main-content'"><RouterView /></main>
     <nav v-if="!login && !register" class="prototype-footer" aria-label="底部导航">

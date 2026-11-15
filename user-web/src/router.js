@@ -19,6 +19,26 @@ const router = createRouter({
     },
     { path: '/index', component: () => import('./views/Home.vue'), meta: { title: '健康首页' } },
     {
+      path: '/messages',
+      component: () => import('./views/Messages.vue'),
+      meta: { title: '消息中心' },
+    },
+    {
+      path: '/trends',
+      component: () => import('./views/Trends.vue'),
+      meta: { title: '历次指标趋势' },
+    },
+    {
+      path: '/doctors/:id',
+      component: () => import('./views/DoctorDetail.vue'),
+      meta: { title: '医生介绍' },
+    },
+    {
+      path: '/articles/:slug',
+      component: () => import('./views/ArticleDetail.vue'),
+      meta: { title: '健康资讯' },
+    },
+    {
       path: '/persons',
       component: () => import('./views/Persons.vue'),
       meta: { title: '健康档案' },

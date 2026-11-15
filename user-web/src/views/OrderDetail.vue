@@ -6,6 +6,7 @@ import { dateText, orderState, money, localDate, notify, sexText } from '../stat
 import Icon from '../components/Icon.vue';
 import AsyncState from '../components/AsyncState.vue';
 import ConfirmDialog from '../components/ConfirmDialog.vue';
+import CheckupGuide from '../components/CheckupGuide.vue';
 const route = useRoute(),
   order = ref(null),
   loading = ref(true),
@@ -63,6 +64,7 @@ watch(() => route.params.orderId, load, { immediate: true });
             客服电话 <a :href="`tel:${order.hospitalTelephone}`">{{ order.hospitalTelephone }}</a>
           </p>
         </div>
+        <div class="success-guide"><CheckupGuide :order="order" /></div>
       </section>
       <section v-else class="order-detail">
         <p class="order-number">
@@ -129,6 +131,7 @@ watch(() => route.params.orderId, load, { immediate: true });
           <h3>订单金额</h3>
           <p class="order-amount">¥{{ money(order.amount) }}</p>
         </div>
+        <CheckupGuide :order="order" />
         <div class="detail-actions">
           <RouterLink v-if="order.state === 2" :to="`/report/${order.orderId}`" class="btn"
             >查看体检报告</RouterLink
@@ -157,6 +160,9 @@ watch(() => route.params.orderId, load, { immediate: true });
   />
 </template>
 <style scoped>
+.success-guide {
+  margin: 18px 7% 24px;
+}
 .appointment-success {
   min-height: calc(100dvh - 124px);
   color: #555;
@@ -187,14 +193,14 @@ watch(() => route.params.orderId, load, { immediate: true });
   color: #02a6c9;
 }
 .success-main h1 {
-  font-size: 20px;
+  font-size: calc(20px * var(--reading-scale, 1));
   font-weight: 400;
   line-height: 1.6;
   color: #02a6c9;
   margin: 45px 0 10px;
 }
 .success-main > p {
-  font-size: 12px;
+  font-size: calc(12px * var(--reading-scale, 1));
   color: #777;
   margin: 0;
 }
@@ -203,7 +209,7 @@ watch(() => route.params.orderId, load, { immediate: true });
   background: #fff;
   text-align: center;
   line-height: 54px;
-  font-size: 14px;
+  font-size: calc(14px * var(--reading-scale, 1));
   color: #02a6c9;
 }
 .success-continue {
@@ -215,13 +221,13 @@ watch(() => route.params.orderId, load, { immediate: true });
   text-align: center;
   color: #fff;
   background: linear-gradient(110deg, #01c7b0, #02a6c9);
-  font-size: 14px;
+  font-size: calc(14px * var(--reading-scale, 1));
   border-radius: 5px;
 }
 .success-info {
   text-align: center;
   margin: 63px 7% 22px;
-  font-size: 11px;
+  font-size: calc(11px * var(--reading-scale, 1));
   color: #999;
   line-height: 1.8;
 }
@@ -229,7 +235,7 @@ watch(() => route.params.orderId, load, { immediate: true });
   margin: 3px 0;
 }
 .success-info a {
-  font-size: 12px;
+  font-size: calc(12px * var(--reading-scale, 1));
   color: #777;
   margin-left: 7px;
 }
@@ -241,7 +247,7 @@ watch(() => route.params.orderId, load, { immediate: true });
   display: flex;
   justify-content: space-between;
   gap: 9px;
-  font-size: 11px;
+  font-size: calc(11px * var(--reading-scale, 1));
   color: #999;
   margin: 7px 0 0;
 }
@@ -254,7 +260,7 @@ watch(() => route.params.orderId, load, { immediate: true });
   align-items: center;
   gap: 10px;
   border-bottom: 1px solid #eee;
-  font-size: 15px;
+  font-size: calc(15px * var(--reading-scale, 1));
   font-weight: 600;
   margin: 0 0 9px;
 }
@@ -269,7 +275,7 @@ watch(() => route.params.orderId, load, { immediate: true });
   display: block;
   padding: 0;
   margin: 0 0 5px;
-  font-size: 12px;
+  font-size: calc(12px * var(--reading-scale, 1));
 }
 .detail-section .detail-list > div {
   display: grid;
@@ -288,16 +294,16 @@ watch(() => route.params.orderId, load, { immediate: true });
   font-weight: 400;
 }
 .detail-section > p {
-  font-size: 13px;
+  font-size: calc(13px * var(--reading-scale, 1));
   line-height: 1.8;
   margin: 11px 0 14px;
 }
 .detail-section .order-amount {
-  font-size: 18px;
+  font-size: calc(18px * var(--reading-scale, 1));
   color: #f77b2d;
 }
 .order-amount small {
-  font-size: 11px;
+  font-size: calc(11px * var(--reading-scale, 1));
   color: #aaa;
   margin-left: 12px;
 }
@@ -309,17 +315,17 @@ watch(() => route.params.orderId, load, { immediate: true });
   margin-top: 22px;
 }
 .detail-actions .btn {
-  font-size: 13px;
+  font-size: calc(13px * var(--reading-scale, 1));
   min-height: 38px;
   padding: 7px 12px;
 }
 .cancel-detail {
-  font-size: 12px;
+  font-size: calc(12px * var(--reading-scale, 1));
   color: #e6a23c;
   padding: 7px 0;
 }
 .detail-note {
-  font-size: 11px;
+  font-size: calc(11px * var(--reading-scale, 1));
   color: #999;
   line-height: 1.8;
   margin: 17px 0 4px;

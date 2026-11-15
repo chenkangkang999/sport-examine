@@ -126,7 +126,7 @@ onMounted(async () => {
   justify-content: space-between;
   gap: 12px;
   padding: 15px 0 5px;
-  font-size: 11px;
+  font-size: calc(11px * var(--reading-scale, 1));
   color: #999;
 }
 .appointment-filters label {
@@ -136,7 +136,7 @@ onMounted(async () => {
   min-width: 0;
 }
 .appointment-filters select {
-  font-size: 11px;
+  font-size: calc(11px * var(--reading-scale, 1));
   max-width: 112px;
   border: 1px solid #e7e7e7;
   border-radius: 2px;
@@ -172,44 +172,44 @@ onMounted(async () => {
   flex: 1;
 }
 .order-info > small {
-  font-size: 12px;
+  font-size: calc(12px * var(--reading-scale, 1));
   color: #777;
 }
 .order-info > strong {
-  font-size: 15px;
+  font-size: calc(15px * var(--reading-scale, 1));
   font-weight: 600;
   color: #333;
   overflow-wrap: anywhere;
 }
 .order-info > span {
-  font-size: 10px;
+  font-size: calc(10px * var(--reading-scale, 1));
   color: #aaa;
   line-height: 1.5;
   margin-top: 2px;
 }
 .order-actions {
   flex-shrink: 0;
-  font-size: 13px;
+  font-size: calc(13px * var(--reading-scale, 1));
   max-width: 83px;
   text-align: right;
 }
 .cancel-appointment {
   padding: 7px 0;
   color: #e6a23c;
-  font-size: 13px;
+  font-size: calc(13px * var(--reading-scale, 1));
 }
 .view-report {
   color: #137e92;
 }
 .order-status {
-  font-size: 11px;
+  font-size: calc(11px * var(--reading-scale, 1));
   color: #999;
 }
 .new-appointment {
   display: block;
   text-align: center;
   margin: 25px 0;
-  font-size: 12px;
+  font-size: calc(12px * var(--reading-scale, 1));
   color: #137e92;
 }
 </style>

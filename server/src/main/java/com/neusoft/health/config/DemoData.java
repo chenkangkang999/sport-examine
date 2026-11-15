@@ -38,9 +38,9 @@ public class DemoData implements ApplicationRunner {
       db.exec(
           "INSERT IGNORE INTO"
               + " hospital(hpId,name,picture,telephone,address,businessHours,deadline,state)"
-              + " VALUES(1,'云医院体检中心','/img/hospita1.png','0372-0000001','健康路1号','周一至周五"
+              + " VALUES(1,'云医院-和平院区','/img/hospita1.png','0372-0000001','健康路1号','周一至周五"
               + " 7:30-15:30','采血截止"
-              + " 10:30',1),(2,'东软健康体检中心','/img/hospita2.png','0372-0000002','康宁路2号','周一至周五"
+              + " 10:30',1),(2,'云医院-建设院区','/img/hospita2.png','0372-0000002','康宁路2号','周一至周五"
               + " 7:30-15:30','采血截止 10:30',1)");
       db.exec(
           "INSERT IGNORE INTO checkitem(ciId,ciName,ciContent,meaning,remarks)"
@@ -78,6 +78,7 @@ public class DemoData implements ApplicationRunner {
     }
     migrateHospitalLabels();
     migrateOrderHospitalLabels();
+    migrateHospitalCampusLabels();
     for (var hospital : db.rows("SELECT hpId FROM hospital WHERE state=1"))
       for (int i = 0; i <= 60; i++) {
         LocalDate d = today().plusDays(i);
@@ -212,6 +213,34 @@ public class DemoData implements ApplicationRunner {
         "UPDATE orders SET hospitalAddress='康宁路2号' WHERE hpId=2"
             + " AND BINARY hospitalAddress=BINARY '安阳市康宁路2号（虚构地址）'");
     db.exec("INSERT IGNORE INTO seed_history(seedKey) VALUES(#{p.key})", "key", key);
+  }
+
+  private void migrateHospitalCampusLabels() {
+    String key = "hospital-campus-labels-20261115";
+    if (db.one("SELECT seedKey FROM seed_history WHERE seedKey=#{p.key}", "key", key) != null)
+      return;
+    // 仅对默认医院的已知旧名称执行一次升级，不覆盖自定义名称或后续管理员修改。
+    renameDefaultCampus(1, "云医院-和平院区", "云医院体检中心", "安阳云医院体检中心（演示）");
+    renameDefaultCampus(2, "云医院-建设院区", "东软健康体检中心", "东软健康体检中心（演示）");
+    db.exec("INSERT IGNORE INTO seed_history(seedKey) VALUES(#{p.key})", "key", key);
+  }
+
+  private void renameDefaultCampus(long hpId, String name, String... oldNames) {
+    for (String oldName : oldNames) {
+      db.exec(
+          "UPDATE hospital SET name=#{p.name} WHERE hpId=#{p.hp} AND BINARY name=BINARY #{p.old}",
+          "name", name, "hp", hpId, "old", oldName);
+      db.exec(
+          "UPDATE orders SET hospitalName=#{p.name} WHERE hpId=#{p.hp}"
+              + " AND BINARY hospitalName=BINARY #{p.old}",
+          "name", name, "hp", hpId, "old", oldName);
+      // 通知只替换对应订单中带分隔符的旧默认名称，不改已读时间、事件或其余正文。
+      db.exec(
+          "UPDATE user_notification n JOIN orders o ON o.orderId=n.orderId"
+              + " SET n.content=REPLACE(n.content,#{p.old},#{p.name})"
+              + " WHERE o.hpId=#{p.hp} AND LOCATE(BINARY #{p.old},BINARY n.content)>0",
+          "name", " · " + name + " · ", "hp", hpId, "old", " · " + oldName + " · ");
+    }
   }
 
   private void detail(

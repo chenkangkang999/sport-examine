@@ -1,7 +1,9 @@
 <script setup>
 import { ref } from 'vue';
 import { notify } from '../state';
-import FaIcon from '../components/FaIcon.vue';
+import { healthArticles, readingMinutes } from '../data/articles';
+import { doctors } from '../data/doctors';
+import MyCheckup from '../components/MyCheckup.vue';
 const assessTrack = ref(null);
 const draggingAssess = ref(false);
 let assessDrag = null;
@@ -56,7 +58,6 @@ const menus = [
   { name: '上门护理', desc: '网上购买上门服务', image: 'menu05.png' },
   { name: '团检预约', desc: '团体体检套餐定制', image: 'menu06.png', to: '/appointment' },
 ];
-const doctors = ['刘长胜', '孙鹿', '吕文达', '李若辰', '张石凡', '赵桂凤', '李文', '吴晓梦'];
 function explain(name) {
   notify(`${name}为原型展示内容，本课程项目暂未接入对应外部服务。`, 'info');
 }
@@ -80,6 +81,7 @@ function explain(name) {
         </li>
       </ul>
     </nav>
+    <MyCheckup />
     <section class="home-report">
       <div class="item-title"><p>我的健康报告</p></div>
       <div class="home-report-content">
@@ -90,12 +92,12 @@ function explain(name) {
     <section class="home-doctors">
       <div class="item-title"><p>推荐医生</p></div>
       <ul>
-        <li v-for="(doctor, i) in doctors" :key="doctor">
-          <button @click="explain('医生介绍')">
-            <img :src="`/img/doctor${i + 1}.jpg`" :alt="doctor" />
-            <h3>{{ doctor }}</h3>
-            <p>主任医师</p>
-          </button>
+        <li v-for="doctor in doctors" :key="doctor.id">
+          <RouterLink :to="`/doctors/${doctor.id}`">
+            <img :src="doctor.image" :alt="doctor.name" />
+            <h3>{{ doctor.name }}</h3>
+            <p>{{ doctor.title }}</p>
+          </RouterLink>
         </li>
       </ul>
     </section>
@@ -128,29 +130,36 @@ function explain(name) {
       </div>
     </section>
     <section class="home-information">
-      <div class="item-title"><p>健康咨询</p></div>
+      <div class="item-title"><p>健康资讯</p></div>
       <ul>
-        <li>
-          <button @click="explain('健康资讯详情')">
-            <img src="/img/info1.png" alt="健康资讯配图" />
-            <div>
-              <h3>查出肺结核，我是不是要得肺癌了？</h3>
-              <span>肺结核一定会导致肺癌吗？</span>
-              <p><FaIcon name="comment" />6666</p>
+        <li v-for="article in healthArticles" :key="article.slug">
+          <RouterLink :to="`/articles/${article.slug}`" class="information-link">
+            <img :src="article.image" :alt="article.imageAlt" />
+            <div class="information-copy">
+              <h3>{{ article.title }}</h3>
+              <span>{{ article.description }}</span>
+              <p>健康科普 · 约 {{ readingMinutes(article) }} 分钟</p>
             </div>
-          </button>
-        </li>
-        <li>
-          <button @click="explain('健康资讯详情')">
-            <img src="/img/info2.png" alt="健康资讯配图" />
-            <div>
-              <h3>体检发现甲状腺结节，怎么办？</h3>
-              <span>日常需要注意什么？</span>
-              <p><FaIcon name="comment" />7777</p>
-            </div>
-          </button>
+          </RouterLink>
         </li>
       </ul>
     </section>
   </div>
 </template>
+<style scoped>
+.information-link {
+  display: flex;
+  align-items: flex-start;
+  gap: 3cqw;
+  width: 100%;
+  padding: 3.6cqw;
+  text-align: left;
+}
+.information-copy {
+  flex: 1;
+  min-width: 0;
+}
+.information-link:hover h3 {
+  color: var(--teal);
+}
+</style>

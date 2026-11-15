@@ -3,6 +3,7 @@ import { computed, onMounted, reactive, ref } from 'vue';
 import { useRoute } from 'vue-router';
 import { ElMessage, ElMessageBox } from 'element-plus';
 import { get, post, sexText, money } from '../api';
+import HospitalGuidanceDialog from '../components/HospitalGuidanceDialog.vue';
 const route = useRoute(),
   resource = computed(() => route.params.resource),
   rows = ref([]),
@@ -14,6 +15,12 @@ const route = useRoute(),
   dialog = ref(false),
   formRef = ref(),
   query = ref('');
+const guideHospital = ref(null),
+  guideOpen = ref(false);
+function openGuide(row) {
+  guideHospital.value = row;
+  guideOpen.value = true;
+}
 const definitions = {
   hospitals: {
     title: '医院信息',
@@ -324,9 +331,11 @@ onMounted(() => {
             row.state === 1 ? '启用' : '已停用'
           }}</el-tag></template
         ></el-table-column
-      ><el-table-column label="操作" min-width="135" fixed="right"
+      ><el-table-column label="操作" :min-width="resource === 'hospitals' ? 210 : 135" fixed="right"
         ><template #default="{ row }"
           ><el-button type="primary" link @click="openEdit(row)">编辑</el-button
+          ><el-button v-if="resource === 'hospitals'" type="primary" link @click="openGuide(row)"
+            >体检指南</el-button
           ><el-button v-if="row.state === 1" type="danger" link @click="disable(row)"
             >停用</el-button
           ></template
@@ -335,6 +344,12 @@ onMounted(() => {
     >
     <div class="catalog-footnote">资料调整仅影响后续预约；已创建订单与历史报告保留原始快照。</div>
   </section>
+  <HospitalGuidanceDialog
+    v-if="resource === 'hospitals'"
+    :open="guideOpen"
+    :hospital="guideHospital"
+    @close="guideOpen = false"
+  />
   <el-dialog
     v-model="dialog"
     :title="`${form[config.id] ? '编辑' : '新增'}${config.singular}`"

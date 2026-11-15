@@ -1,6 +1,32 @@
 import { reactive } from 'vue';
 // 少量跨页面状态用 Vue reactive 共享；ready 表示本次页面加载已向后端核验会话。
-export const state = reactive({ user: null, ready: false, csrf: '', notices: [] });
+function savedReadingSize() {
+  try {
+    return localStorage.getItem('health.reading-size') === 'large' ? 'large' : 'standard';
+  } catch {
+    return 'standard';
+  }
+}
+export const state = reactive({
+  user: null,
+  ready: false,
+  csrf: '',
+  notices: [],
+  unreadCount: 0,
+  readingSize: savedReadingSize(),
+});
+export function setReadingSize(size) {
+  state.readingSize = size === 'large' ? 'large' : 'standard';
+  document.documentElement.dataset.readingSize = state.readingSize;
+  document.documentElement.style.setProperty(
+    '--reading-scale',
+    state.readingSize === 'large' ? '1.16' : '1',
+  );
+  try {
+    localStorage.setItem('health.reading-size', state.readingSize);
+  } catch {}
+}
+setReadingSize(state.readingSize);
 export function notify(message, kind = 'error') {
   const id = Date.now() + Math.random();
   state.notices.push({ id, message, kind });

@@ -1,0 +1,29 @@
+/* 用户端共用页面底图；内容卡片保持不透明白底，原有彩色区域不变。 */
+:root {
+  --care-image: url('/img/home-care-background-v1.png');
+  --care-base: #f8fbf7;
+}
+:root:has(.care-shell) {
+  --canvas: transparent;
+}
+.care-backdrop {
+  position: fixed;
+  top: 0;
+  bottom: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 100%;
+  max-width: 480px;
+  z-index: 0;
+  pointer-events: none;
+  background: var(--care-base) var(--care-image) right top / cover no-repeat;
+}
+.app-shell.care-shell {
+  z-index: 1;
+  background: transparent;
+}
+@media print {
+  .care-backdrop {
+    display: none !important;
+  }
+}

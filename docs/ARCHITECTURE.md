@@ -30,17 +30,19 @@ flowchart LR
 
 源码根目录：`server/src/main/java/com/neusoft/health/`。
 
-| 位置                                     | 职责                                           |
-| ---------------------------------------- | ---------------------------------------------- |
-| `HealthApplication.java`                 | Spring Boot 启动入口                           |
-| `controller/HealthController.java`       | 接收两端 HTTP 请求，取得会话身份，调用业务服务 |
-| `service/AccountService.java`            | 注册、登录、密码与体检人档案                   |
-| `service/CatalogService.java`            | 医院、套餐、检查项目和可预约日期               |
-| `service/OrderService.java`              | 预约、名额、取消、报告保存及归档的事务         |
-| `service/AdminService.java`              | 医院、套餐、检查项、医生与排班维护             |
-| `mapper/Database.java`、`SqlMapper.java` | MyBatis 参数化 SQL 访问                        |
-| `entity/Principal.java`                  | 当前用户或医生身份                             |
-| `dto/`、`config/`                        | 统一响应、业务异常、Web 配置和虚构初始数据     |
+| 位置                                                                     | 职责                                           |
+| ------------------------------------------------------------------------ | ---------------------------------------------- |
+| `HealthApplication.java`                                                 | Spring Boot 启动入口                           |
+| `controller/HealthController.java`                                       | 接收两端 HTTP 请求，取得会话身份，调用业务服务 |
+| `service/AccountService.java`                                            | 注册、登录、密码与体检人档案                   |
+| `service/CatalogService.java`                                            | 医院、套餐、检查项目和可预约日期               |
+| `service/OrderService.java`                                              | 预约、名额、取消、报告保存及归档的事务         |
+| `service/AdminService.java`                                              | 医院、套餐、检查项、医生与排班维护             |
+| `controller/ExperienceController.java`、`service/ExperienceService.java` | 首页、机构指南、趋势、工作台和管理员统计查询   |
+| `service/NotificationService.java`                                       | 业务通知幂等生成、分页、已读与历史回填         |
+| `mapper/Database.java`、`SqlMapper.java`                                 | MyBatis 参数化 SQL 访问                        |
+| `entity/Principal.java`                                                  | 当前用户或医生身份                             |
+| `dto/`、`config/`                                                        | 统一响应、业务异常、Web 配置和虚构初始数据     |
 
 当前课程实现使用普通 JavaScript 和较少的公共工具；后端部分请求使用 Map 承载字段，未为每个接口单独创建 DTO 类。入口和业务处理已分层，不将所有业务写入 main 方法。
 

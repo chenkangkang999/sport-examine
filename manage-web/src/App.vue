@@ -8,6 +8,7 @@ const route = useRoute(),
 const admin = computed(() => session.staff?.role === 'ADMIN');
 const links = [
   { to: '/orders', label: '体检客户查询' },
+  { to: '/statistics', label: '数据统计' },
   { to: '/catalog/hospitals', label: '医院信息' },
   { to: '/catalog/setmeals', label: '体检套餐' },
   { to: '/catalog/checkitems', label: '检查项目' },
@@ -32,7 +33,7 @@ async function signOut() {
   <RouterView v-if="route.meta.public" />
   <div v-else class="manual-workspace">
     <header class="manual-header">
-      <RouterLink to="/orders" class="manual-brand">Neusoft&nbsp; 东软体检报告管理系统</RouterLink>
+      <RouterLink to="/orders" class="manual-brand">体检报告管理系统</RouterLink>
       <div class="manual-account">
         <span>{{ admin ? '管理员' : '医生' }}: {{ session.staff?.realName }}</span
         ><button @click="signOut">退出</button>

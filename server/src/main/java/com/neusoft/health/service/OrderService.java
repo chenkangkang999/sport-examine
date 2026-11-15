@@ -16,12 +16,14 @@ import org.springframework.transaction.annotation.Transactional;
 public class OrderService {
   private final Database db;
   private final CatalogService catalog;
+  private final NotificationService notifications;
   public static final String ORDER_COLUMNS =
       "orderId,userId,personId,hpId,smId,orderDate,state,personName,personSex,personBirthday,personIdentityMasked,hospitalName,hospitalAddress,hospitalTelephone,businessHours,deadline,setmealName,amount,reportVersion,reportStarted,createdAt,archivedAt";
 
-  public OrderService(Database db, CatalogService catalog) {
+  public OrderService(Database db, CatalogService catalog, NotificationService notifications) {
     this.db = db;
     this.catalog = catalog;
+    this.notifications = notifications;
   }
 
   public Map<String, Object> order(long id) {
@@ -132,6 +134,7 @@ public class OrderService {
         orderId,
         "amount",
         meal.get("price"));
+    notifications.record(orderId, "BOOKED");
     return order(orderId);
   }
 
@@ -187,6 +190,7 @@ public class OrderService {
             + " AND status='PAID'",
         "id",
         id);
+    notifications.record(id, "CANCELLED");
     return order(id);
   }
 
@@ -205,6 +209,16 @@ public class OrderService {
       p.put("hpId", staff.hpId());
       sql += " AND hpId=#{p.hpId}";
     } else if (!text(p, "hpId").isEmpty()) sql += " AND hpId=#{p.hpId}";
+    switch (text(p, "workStage")) {
+      case "" -> {}
+      case "unstarted" -> sql += " AND state=1 AND reportStarted=0";
+      case "started" -> sql += " AND state=1 AND reportStarted=1";
+      case "today" -> {
+        p.put("workToday", today());
+        sql += " AND orderDate=#{p.workToday} AND state<>3";
+      }
+      default -> throw new BusinessException(400, "工作阶段筛选不正确");
+    }
     for (String field : List.of("smId", "state", "orderDate"))
       if (!text(p, field).isEmpty()) sql += " AND " + field + "=#{p." + field + "}";
     if (!text(p, "sex").isEmpty()) {
@@ -245,7 +259,7 @@ public class OrderService {
           "details",
           db.rows(
               "SELECT"
-                  + " cidrId,name,unit,minrange,maxrange,normalValue,normalValueString,type,required,value,isError"
+                  + " cidrId,sourceDetailId,name,unit,minrange,maxrange,normalValue,normalValueString,type,required,value,isError"
                   + " FROM cidetailedreport WHERE cirId=#{p.id} ORDER BY cidrId",
               "id",
               i.get("cirId")));
@@ -385,6 +399,7 @@ public class OrderService {
             + " WHERE orderId=#{p.id}",
         "id",
         id);
+    notifications.record(id, "ARCHIVED");
     return report(id);
   }
 }
